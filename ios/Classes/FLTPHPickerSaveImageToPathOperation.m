@@ -98,8 +98,7 @@ API_AVAILABLE(ios(14))
                                 completionHandler:^(NSData *_Nullable data,
                                                     NSError *_Nullable error) {
                                   if (data != nil) {
-                                    UIImage *image = [[UIImage alloc] initWithData:data];
-                                    [self processImage:image];
+                                    [self processImage:data];
                                   } else {
                                     FlutterError *flutterError =
                                         [FlutterError errorWithCode:@"invalid_image"
@@ -108,9 +107,15 @@ API_AVAILABLE(ios(14))
                                     [self completeOperationWithPath:nil error:flutterError];
                                   }
                                 }];
+    } else if ([self.result.itemProvider
+                   // This supports uniform types that conform to UTTypeMovie.
+                   // This includes kUTTypeVideo, kUTTypeMPEG4, public.3gpp, kUTTypeMPEG,
+                   // public.3gpp2, public.avi, kUTTypeQuickTimeMovie.
+                   hasItemConformingToTypeIdentifier:UTTypeMovie.identifier]) {
+      [self processVideo];
     } else {
       FlutterError *flutterError = [FlutterError errorWithCode:@"invalid_source"
-                                                       message:@"Invalid image source."
+                                                       message:@"Invalid media source."
                                                        details:nil];
       [self completeOperationWithPath:nil error:flutterError];
     }
@@ -122,7 +127,9 @@ API_AVAILABLE(ios(14))
 /**
  * Processes the image.
  */
-- (void)processImage:(UIImage *)localImage API_AVAILABLE(ios(14)) {
+- (void)processImage:(NSData *)pickerImageData API_AVAILABLE(ios(14)) {
+  UIImage *localImage = [[UIImage alloc] initWithData:pickerImageData];
+
   PHAsset *originalAsset;
   // Only if requested, fetch the full "PHAsset" metadata, which requires  "Photo Library Usage"
   // permissions.
@@ -134,7 +141,7 @@ API_AVAILABLE(ios(14))
     localImage = [FLTImagePickerImageUtil scaledImage:localImage
                                              maxWidth:self.maxWidth
                                             maxHeight:self.maxHeight
-                                  isMetadataAvailable:originalAsset != nil];
+                                  isMetadataAvailable:YES];
   }
   if (originalAsset) {
     void (^resultHandler)(NSData *imageData, NSString *dataUTI, NSDictionary *info) =
@@ -172,12 +179,52 @@ API_AVAILABLE(ios(14))
     }
   } else {
     // Image picked without an original asset (e.g. User pick image without permission)
+    // maxWidth and maxHeight are used only for GIF images.
     NSString *savedPath =
-        [FLTImagePickerPhotoAssetUtil saveImageWithPickerInfo:nil
-                                                        image:localImage
-                                                 imageQuality:self.desiredImageQuality];
+        [FLTImagePickerPhotoAssetUtil saveImageWithOriginalImageData:pickerImageData
+                                                               image:localImage
+                                                            maxWidth:self.maxWidth
+                                                           maxHeight:self.maxHeight
+                                                        imageQuality:self.desiredImageQuality];
     [self completeOperationWithPath:savedPath error:nil];
   }
+}
+
+/**
+ * Processes the video.
+ */
+- (void)processVideo API_AVAILABLE(ios(14)) {
+  NSString *typeIdentifier = self.result.itemProvider.registeredTypeIdentifiers.firstObject;
+  [self.result.itemProvider
+      loadFileRepresentationForTypeIdentifier:typeIdentifier
+                            completionHandler:^(NSURL *_Nullable videoURL,
+                                                NSError *_Nullable error) {
+                              if (error != nil) {
+                                FlutterError *flutterError =
+                                    [FlutterError errorWithCode:@"invalid_image"
+                                                        message:error.localizedDescription
+                                                        details:error.domain];
+                                [self completeOperationWithPath:nil error:flutterError];
+                                return;
+                              }
+
+                              NSURL *destination =
+                                  [FLTImagePickerPhotoAssetUtil saveVideoFromURL:videoURL];
+                              if (destination == nil) {
+                                [self
+                                    completeOperationWithPath:nil
+                                                        error:[FlutterError
+                                                                  errorWithCode:
+                                                                      @"flutter_image_picker_copy_"
+                                                                      @"video_error"
+                                                                        message:@"Could not cache "
+                                                                                @"the video file."
+                                                                        details:nil]];
+                                return;
+                              }
+
+                              [self completeOperationWithPath:[destination path] error:nil];
+                            }];
 }
 
 @end

@@ -1,3 +1,56 @@
+## 0.8.8+2
+
+* Adds pub topics to package metadata.
+
+## 0.8.8+1
+
+* Fixes exception when canceling pickMultipleMedia.
+* Updates minimum supported SDK version to Flutter 3.7/Dart 2.19.
+
+## 0.8.8
+
+* Adds `getMedia` and `getMultipleMedia` methods.
+
+## 0.8.7+4
+
+* Fixes `BuildContext` handling in example.
+* Updates metadata unit test to work on iOS 16.2.
+
+## 0.8.7+3
+
+* Updates pigeon to fix warnings with clang 15.
+* Updates minimum Flutter version to 3.3.
+
+## 0.8.7+2
+
+* Updates to `pigeon` version 9.
+
+## 0.8.7+1
+
+* Clarifies explanation of endorsement in README.
+* Aligns Dart and Flutter SDK constraints.
+
+## 0.8.7
+
+* Updates minimum Flutter version to 3.3 and iOS 11.
+
+## 0.8.6+9
+
+* Updates links for the merge of flutter/plugins into flutter/packages.
+
+## 0.8.6+8
+
+* Fixes issue with images sometimes changing to incorrect orientation.
+
+## 0.8.6+7
+
+* Fixes issue where GIF file would not animate without `Photo Library Usage` permissions. Fixes issue where PNG and GIF files were converted to JPG, but only when they are do not have `Photo Library Usage` permissions.
+* Updates minimum Flutter version to 3.0.
+
+## 0.8.6+6
+
+* Updates code for stricter lint checks.
+
 ## 0.8.6+5
 
 * Fixes crash when `imageQuality` is set.
